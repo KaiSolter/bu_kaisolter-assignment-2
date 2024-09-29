@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ClusterPicker from './ClusterPicker';
 import InitializationMethodPicker from './InitializationMethodPicker';
 import Graph from './Graph';
@@ -16,29 +16,108 @@ function generateRandomPoints() {
   return points;
 }
 
+// function for calcing the euclidean distance between points
+function euclideanDistance(point1, point2) {
+  const dx = point1.x - point2.x;
+  const dy = point1.y - point2.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function assignPointsToCenters(points, centers) {
+  const clusters = Array(centers.length).fill(null).map(() => []);
+    for (let point of points) {
+      let closestCenterIndex = 0;
+      let minDistance = euclideanDistance(point, centers[0]);
+
+      for (let i = 1; i < centers.length; i++) {
+        const distance = euclideanDistance(point, centers[i]);
+        if (distance < minDistance) {
+          closestCenterIndex = i;
+          minDistance = distance;
+        }
+      }
+      // Assign point to the closest center's cluster
+      clusters[closestCenterIndex].push(point);
+  };
+
+  return clusters;
+}
+
+// Function to generate random centroids in the range of -10 to 10
+function generateRandomCentroids(k) {
+  const centroids = [];
+  for (let i = 0; i < k; i++) {
+    centroids.push({
+      x: Math.random() * 20 - 10,
+      y: Math.random() * 20 - 10,
+    });
+  }
+  return centroids;
+}
+
+function updateCenters(clusters) {
+  return clusters.map(cluster => {
+    if (cluster.length === 0) return { x: 0, y: 0 }; // Avoid division by 0
+    const sum = cluster.reduce((acc, point) => {
+      acc.x += point.x;
+      acc.y += point.y;
+      return acc;
+    }, { x: 0, y: 0 });
+
+    // Calculate the mean position of the points in this cluster
+    return {
+      x: sum.x / cluster.length,
+      y: sum.y / cluster.length
+    };
+  });
+}
 
 function App() {
   const [clusters, setClusters] = useState([]);
-  const [points, setPoints] = useState(generateRandomPoints());
+  const [points, setPoints] = useState([]);
+  const [centroids, setCentroids] = useState([]);
   const [k, setK] = useState(3); // Default number of clusters
   const [initMethod, setInitMethod] = useState('Random'); // Default method
-  const [step, setStep] = useState(0); // To track steps if needed
+  const [step, setStep] = useState(0); // To track steps
+  const [converged, setConverged] = useState(false)
 
-  // Function to simulate K-Means to convergence
-  const runToConvergence = () => {
-    console.log(`Running K-means with ${k} clusters using ${initMethod} initialization to convergence`);
-    // Add logic to run the entire K-means clustering algorithm until convergence
-  };
+  useEffect(() => {
+    if (centroids.length > 0) {
+      const prevclusters = clusters
+      const nclusters = assignPointsToCenters(points, centroids);
+      setClusters(nclusters);
+      if (JSON.stringify(prevclusters) === JSON.stringify(nclusters)) {
+        setConverged(true)
+        alert('KMeans has converged')
+      }
+    }
+  }, [centroids]);
 
   // Function to simulate one step of K-Means
   const stepThroughKMeans = () => {
-    console.log(`Running one step of K-means with ${k} clusters using ${initMethod} initialization`);
-    // Add logic to run one step of the K-means clustering algorithm
+    if (centroids.length === 0) {
+      const initialCentroids = generateRandomCentroids(k);
+      setCentroids(initialCentroids);
+    } else {
+      const newCentroids = updateCenters(clusters)
+      setCentroids(newCentroids);
+    }
     setStep((prevStep) => prevStep + 1);
   };
 
+  const runToConvergence = () => {
+    while(!converged){
+      console.log('iteration!!!!')
+      stepThroughKMeans 
+    }
+  }
+
   const handleClusterChange = (newK) => {
     setK(newK);
+    setCentroids([]); // Reset centroids when k changes
+    setClusters([]);  // Reset clusters
+    setStep(0); // Reset step
+    setConverged(false);
   };
 
   const handleMethodChange = (newMethod) => {
@@ -47,6 +126,9 @@ function App() {
 
   const generateNewDataset = () => {
     setPoints(generateRandomPoints());
+    setCentroids([]); // Reset centroids
+    setClusters([]);  // Reset clusters
+    setStep(0); // Reset step
   };
 
   return (
@@ -69,28 +151,27 @@ function App() {
         </button>
       </div>
 
-      {/* Graph */}
-      <Graph points={points} />
-
-      {/* KMeans Buttons */}
       <div className="flex gap-4 mt-4">
         <button 
           className="bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={runToConvergence}
-        >
-          Run To Convergence
-        </button>
-        <button 
-          className="bg-yellow-500 text-white px-4 py-2 rounded"
           onClick={stepThroughKMeans}
         >
           Step Through KMeans
         </button>
       </div>
 
-      <div className="mt-4">
-        <h2 className="text-xl">Clusters:</h2>
-        <pre>{JSON.stringify(clusters, null, 2)}</pre>
+      <div className="flex gap-4 mt-4">
+        <button 
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={runToConvergence}
+        >
+          Run to Convergence
+        </button>
+      </div>
+
+      {/* Graph */}
+      <div className="w-full aspect-square"> 
+        <Graph points={points} centroids={centroids} clusters={clusters} />   
       </div>
     </div>
   );
