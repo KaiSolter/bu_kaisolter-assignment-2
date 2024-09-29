@@ -55,6 +55,43 @@ function generateRandomCentroids(k) {
   return centroids;
 }
 
+
+function generateFarthestFirstCentroids(k, points) {
+  const centroids = [];
+  
+  // Step 1: Randomly pick the first centroid from the points
+  centroids.push(points[Math.floor(Math.random() * points.length)]);
+
+  // Step 2: Pick the remaining k-1 centroids
+  for (let i = 1; i < k; i++) {
+    let farthestPoint = null;
+    let maxDistance = -Infinity;
+
+    // For each point, find the distance to the nearest centroid
+    for (let point of points) {
+      let minDistanceToCentroids = Infinity;
+
+      for (let centroid of centroids) {
+        const distance = euclideanDistance(point, centroid);
+        if (distance < minDistanceToCentroids) {
+          minDistanceToCentroids = distance;
+        }
+      }
+
+      // Track the point that is farthest from the current set of centroids
+      if (minDistanceToCentroids > maxDistance) {
+        maxDistance = minDistanceToCentroids;
+        farthestPoint = point;
+      }
+    }
+
+    // Add the farthest point to the centroids
+    centroids.push(farthestPoint);
+  }
+
+  return centroids;
+}
+
 function updateCenters(clusters) {
   return clusters.map(cluster => {
     if (cluster.length === 0) return { x: 0, y: 0 }; // Avoid division by 0
@@ -72,6 +109,17 @@ function updateCenters(clusters) {
   });
 }
 
+function centroidsHaveConverged(prevCentroids, newCentroids) {
+  const threshold = 0.0001; // Small threshold to account for floating-point precision
+  for (let i = 0; i < prevCentroids.length; i++) {
+    const distance = euclideanDistance(prevCentroids[i], newCentroids[i]);
+    if (distance > threshold) {
+      return false; // Centroids haven't converged
+    }
+  }
+  return true; // All centroids are close enough to be considered converged
+}
+
 function App() {
   const [clusters, setClusters] = useState([]);
   const [points, setPoints] = useState([]);
@@ -80,23 +128,48 @@ function App() {
   const [initMethod, setInitMethod] = useState('Random'); // Default method
   const [step, setStep] = useState(0); // To track steps
   const [converged, setConverged] = useState(false)
+  const [isRunning, setIsRunning] = useState(false); // Track if running to convergence
 
   useEffect(() => {
     if (centroids.length > 0) {
-      const prevclusters = clusters
-      const nclusters = assignPointsToCenters(points, centroids);
-      setClusters(nclusters);
-      if (JSON.stringify(prevclusters) === JSON.stringify(nclusters)) {
-        setConverged(true)
-        alert('KMeans has converged')
+      const newClusters = assignPointsToCenters(points, centroids);
+      setClusters(newClusters);
+  
+      const hasConverged = centroidsHaveConverged(centroids, updateCenters(newClusters));
+      if (hasConverged) {
+        setConverged(true);
+        stopConvergence();
+        alert('KMeans has converged');
       }
     }
   }, [centroids]);
 
+  useEffect(() => {
+    if (isRunning && !converged) {
+      const timer = setTimeout(stepThroughKMeans, 300); // Delay between iterations
+      return () => clearTimeout(timer); // Cleanup timeout
+    } else {
+      stopConvergence();
+    }
+  }, [isRunning, converged, step]);
+
+  const initializeCentroids = () => {
+    switch (initMethod ) {
+      case 'Random':
+        return generateRandomCentroids(k)
+      case 'Farthest First':
+        return generateFarthestFirstCentroids(k, points)
+      case 'KMeans++':
+        break;
+      case 'Manual':
+        break;
+      }
+    }
+
   // Function to simulate one step of K-Means
   const stepThroughKMeans = () => {
     if (centroids.length === 0) {
-      const initialCentroids = generateRandomCentroids(k);
+      const initialCentroids = initializeCentroids();
       setCentroids(initialCentroids);
     } else {
       const newCentroids = updateCenters(clusters)
@@ -106,11 +179,12 @@ function App() {
   };
 
   const runToConvergence = () => {
-    while(!converged){
-      console.log('iteration!!!!')
-      stepThroughKMeans 
-    }
-  }
+    setIsRunning(true); // Start the automatic process
+  };
+
+  const stopConvergence = () => {
+    setIsRunning(false); // Stop the automatic process
+  };
 
   const handleClusterChange = (newK) => {
     setK(newK);
@@ -118,6 +192,7 @@ function App() {
     setClusters([]);  // Reset clusters
     setStep(0); // Reset step
     setConverged(false);
+    setIsRunning(false);
   };
 
   const handleMethodChange = (newMethod) => {
@@ -129,7 +204,17 @@ function App() {
     setCentroids([]); // Reset centroids
     setClusters([]);  // Reset clusters
     setStep(0); // Reset step
+    setConverged(false);
+    setIsRunning(false);
   };
+
+  const resetAlg = () => {
+    setCentroids([]); // Reset centroids
+    setClusters([]);  // Reset clusters
+    setStep(0); // Reset step
+    setConverged(false);
+    setIsRunning(false);
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -150,7 +235,8 @@ function App() {
           Generate New Dataset
         </button>
       </div>
-
+      {points.length > 0 &&
+      <>
       <div className="flex gap-4 mt-4">
         <button 
           className="bg-blue-500 text-white px-4 py-2 rounded"
@@ -168,6 +254,16 @@ function App() {
           Run to Convergence
         </button>
       </div>
+      <div className="flex gap-4 mt-4">
+        <button 
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={resetAlg}
+        >
+          Reset Algorithm
+        </button>
+      </div>
+      </>
+  }
 
       {/* Graph */}
       <div className="w-full aspect-square"> 
