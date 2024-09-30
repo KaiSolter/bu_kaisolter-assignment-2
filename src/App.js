@@ -287,60 +287,63 @@ function App() {
         K-Means Clustering Visualization
       </h1>
 
-      {/* Cluster Picker */}
-      <ClusterPicker onClusterChange={handleClusterChange} />
-
-      {/* Initialization Method Picker */}
-      <InitializationMethodPicker onMethodChange={handleMethodChange} />
-
-      {/* Generate New Dataset Button */}
-      <div className="mb-4">
-        <button
-          className="bg-green-500 text-white px-4 py-2 rounded"
-          onClick={generateNewDataset}
-        >
-          Generate New Dataset
-        </button>
+      {/* Cluster Picker and Initialization Method Picker */}
+      <div className="flex justify-center space-x-4 mb-4">
+        <ClusterPicker onClusterChange={handleClusterChange} />
+        <InitializationMethodPicker onMethodChange={handleMethodChange} />
       </div>
-      {points.length > 0 && (
-        <>
-          <div className="flex gap-4 mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={stepThroughKMeans}
-            >
-              Step Through KMeans
-            </button>
-          </div>
 
-          <div className="flex gap-4 mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={runToConvergence}
-            >
-              Run to Convergence
-            </button>
-          </div>
-          <div className="flex gap-4 mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={resetAlg}
-            >
-              Reset Algorithm
-            </button>
-          </div>
-        </>
-      )}
+      {/* Buttons Section */}
+      <div className="bg-gray-100 p-4 rounded-md shadow-lg mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-md shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+            onClick={generateNewDataset}
+          >
+            Generate New Dataset
+          </button>
+
+          {points.length > 0 && (
+            <>
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-md shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+                onClick={stepThroughKMeans}
+              >
+                Step Through KMeans
+              </button>
+
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-6 rounded-md shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+                onClick={runToConvergence}
+              >
+                Run to Convergence
+              </button>
+
+              <button
+                className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-4 px-6 rounded-md shadow-md transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105"
+                onClick={resetAlg}
+              >
+                Reset Algorithm
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Manual Centroid Input */}
       {initMethod === "Manual" && (
         <ManualCentroidInput k={k} onCentroidsSubmit={handleCentroidsSubmit} />
       )}
 
-      {/* Graph */}
-      <div
-        className="w-full max-w-lg mx-auto p-4 bg-white shadow-lg border-2 border-gray-300 rounded-md"
-        style={{ height: "500px", width: "500px" }}
-      >
-        <Graph points={points} centroids={centroids} clusters={clusters} />
+      {/* Graph Section */}
+      <div className="bg-white p-4 rounded-md shadow-lg border-2 border-gray-300 mt-8">
+        <h2 className="text-xl font-semibold mb-4 text-center">Graph</h2>
+        <div
+          className="w-full max-w-lg mx-auto"
+          style={{ height: "500px", width: "500px" }}
+        >
+          <Graph points={points} centroids={centroids} clusters={clusters} />
+        </div>
       </div>
     </div>
   );
