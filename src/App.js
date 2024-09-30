@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import ClusterPicker from "./ClusterPicker";
 import InitializationMethodPicker from "./InitializationMethodPicker";
+import ManualCentroidInput from "./ManualCentroidInput";
 import Graph from "./Graph";
 
 // Function to generate random points in the range of -10 to 10
@@ -222,8 +223,12 @@ function App() {
       case "KMeans++":
         return generateKMeansPlusPlusCentroids(k, points);
       case "Manual":
-        break;
+        return centroids;
     }
+  };
+
+  const handleCentroidsSubmit = (manualCentroids) => {
+    setCentroids(manualCentroids); // Set the manually entered centroids
   };
 
   // Function to simulate one step of K-Means
@@ -325,6 +330,9 @@ function App() {
             </button>
           </div>
         </>
+      )}
+      {initMethod === "Manual" && (
+        <ManualCentroidInput k={k} onCentroidsSubmit={handleCentroidsSubmit} />
       )}
 
       {/* Graph */}
